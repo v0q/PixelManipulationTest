@@ -18,8 +18,8 @@ int main()
 {
 
   SDL_Rect box;
-  box.w = 80;
-  box.h = 80;
+  box.w = 88;
+  box.h = 64;
   box.x = WIDTH/2;
   box.y = HEIGHT/2;
 
@@ -73,25 +73,24 @@ int main()
   // however we will overdraw all of this so only for reference
   SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
 
-
-  Uint32 *index;
+  Uint8 *index;
   SDL_Surface *testSurface;
   SDL_Texture *textureFromSurface;
-  testSurface = IMG_Load("foo.png");
+  testSurface = IMG_Load("shieldTexture.png");
   if(!testSurface)
   {
     printf("IMG_Load: %s\n", IMG_GetError());
     return EXIT_FAILURE;
   }
 
-
-  editPixels(testSurface, 3, 3, 255, 0, 0);
-
-
-  index = (Uint32 *)testSurface->pixels;
-
-
   textureFromSurface = SDL_CreateTextureFromSurface(ren, testSurface);
+  index = (Uint8 *)testSurface->pixels;
+  for(int i = 0; i < testSurface->pitch*testSurface->h; ++i)
+  {
+    printf("%i ", index[i]);
+    if(i == testSurface->pitch)
+      printf("\n");
+  }
 
   keystate = SDL_GetKeyboardState(NULL);
 
@@ -152,7 +151,7 @@ int main()
     {
       colX = (projectile.x - box.x) / (box.w/testSurface->w);
       colY = (projectile.y - box.y) / (box.h/testSurface->h);
-      if(getPixel(testSurface, colX, colY) == 255)
+      if(getPixel(testSurface, colX, colY) == 252)
       {
         int value = getPixel(testSurface, colX, colY);
         printf("%i - %i - %i", value, colX, colY);
@@ -182,20 +181,17 @@ void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
 {
   Uint8 *index;
   index = (Uint8 *)testSurface->pixels;
-  int randomX = rand()%6;
-  int randomY = rand()%6;
+  int randomX;
+  int randomY;
 
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x] = r;
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+1] = g;
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+2] = b;
 
-  for(int i = 0; i < 9; ++i)
+  for(int i = 0; i < 6; ++i)
   {
-    while(index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] == 0)
-    {
-      randomX = rand()%6;
-      randomY = rand()%6;
-    }
+    randomX = rand()%22;
+    randomY = rand()%16;
 
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] = r;
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+1] = g;
@@ -207,7 +203,7 @@ int getPixel(SDL_Surface *testSurface, int x, int y)
 {
   Uint8 *pixel;
   pixel = (Uint8 *)testSurface->pixels;
-  int value = pixel[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x];
+  int value = pixel[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+1];
   return value;
 }
 
