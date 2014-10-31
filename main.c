@@ -76,7 +76,7 @@ int main()
   Uint8 *index;
   SDL_Surface *testSurface;
   SDL_Texture *textureFromSurface;
-  testSurface = IMG_Load("foo.png");
+  testSurface = IMG_Load("shieldTexture.png");
   if(!testSurface)
   {
     printf("IMG_Load: %s\n", IMG_GetError());
@@ -85,13 +85,16 @@ int main()
 
   textureFromSurface = SDL_CreateTextureFromSurface(ren, testSurface);
   index = (Uint8 *)testSurface->pixels;
+  printf("%i \n", testSurface->format->BytesPerPixel);
+  //if(index[0] == 0x)
   /*for(int i = 0; i < testSurface->pitch*testSurface->h; ++i)
   {
     printf("%i ", index[i]);
     if(i == testSurface->pitch)
       printf("\n");
   }*/
-  printf("%i", testSurface->w);
+
+  printf("%i - %i", testSurface->w, testSurface->h);
 
   keystate = SDL_GetKeyboardState(NULL);
 
@@ -135,7 +138,6 @@ int main()
     player.x += 4;
 
 
-
   // now we clear the screen (will use the clear colour set previously)
   SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
   SDL_RenderClear(ren);
@@ -154,13 +156,17 @@ int main()
       colY = (projectile.y - box.y) / (box.h/testSurface->h);
       if(getPixel(testSurface, colX, colY) == 255)
       {
-        int value = getPixel(testSurface, colX, colY);
-        printf("%i - %i - %i", value, colX, colY);
+        //int value = getPixel(testSurface, colX, colY);
+        //printf("%i - %i - %i", value, colX, colY);
         projectileActive = 0;
         editPixels(testSurface, colX, colY, 0, 0, 0);
         printf("OSU\n");
         textureFromSurface = SDL_CreateTextureFromSurface(ren, testSurface);
+        printf("woo\n");
       }
+      else
+        printf("not woo %i\n", getPixel(testSurface, colX, colY));
+      //printf("%i\n", getPixel(testSurface, colX, colY));
 
     }
   }
@@ -182,6 +188,8 @@ void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
 {
   Uint8 *index;
   index = (Uint8 *)testSurface->pixels;
+  int randomX = rand()%testSurface->w;
+  int randomY = rand()%testSurface->h;
   int explodesUp = 1;
   int explodesLeft = 1;
   int explodesRight = 1;
@@ -193,22 +201,22 @@ void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+1] = g;
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+2] = b;
 
-  /*for(int i = 0; i < 15; ++i)
+  for(int i = 0; i < 10; ++i)
   {
-    while(index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] == 0)
+    while(index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+1] == 0)
     {
-      randomX = rand()%8;
-      randomY = rand()%8;
+      randomX = rand()%testSurface->w;
+      randomY = rand()%testSurface->h;
     }
 
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] = r;
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+1] = g;
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+2] = b;
-  }*/
+  }
 
-  while(explodesUp)
+  /*while(explodesUp)
   {
-    if(rand()%(8-up) != 0 && y >= up)
+    if(rand()%(5-up) != 0 && y >= up)
     {
       index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x] = r;
       index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x+1] = g;
@@ -216,7 +224,7 @@ void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
 
       while(explodesLeft)
       {
-        if(rand()%(5-left-up) != 0 && x >= left)
+        if(rand()%(5-(left+up)) != 0 && x >= left)
         {
           index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)] = r;
           index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)+1] = g;
@@ -229,26 +237,11 @@ void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
       explodesLeft = 1;
       left = 1;
 
-      while(explodesRight)
-      {
-        if(rand()%(5-right-up) != 0 && testSurface->w > right+x)
-        {
-          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x+right)] = r;
-          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x+right)+1] = g;
-          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x+right)+2] = b;
-          ++left;
-        }
-        else
-          explodesRight = 0;
-      }
-      explodesRight = 1;
-      right = 1;
-
       ++up;
     }
     else
       explodesUp = 0;
-  }
+  }*/
 
 }
 
