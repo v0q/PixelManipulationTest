@@ -18,8 +18,8 @@ int main()
 {
 
   SDL_Rect box;
-  box.w = 88;
-  box.h = 64;
+  box.w = 80;
+  box.h = 80;
   box.x = WIDTH/2;
   box.y = HEIGHT/2;
 
@@ -76,7 +76,7 @@ int main()
   Uint8 *index;
   SDL_Surface *testSurface;
   SDL_Texture *textureFromSurface;
-  testSurface = IMG_Load("shieldTexture.png");
+  testSurface = IMG_Load("foo.png");
   if(!testSurface)
   {
     printf("IMG_Load: %s\n", IMG_GetError());
@@ -85,12 +85,13 @@ int main()
 
   textureFromSurface = SDL_CreateTextureFromSurface(ren, testSurface);
   index = (Uint8 *)testSurface->pixels;
-  for(int i = 0; i < testSurface->pitch*testSurface->h; ++i)
+  /*for(int i = 0; i < testSurface->pitch*testSurface->h; ++i)
   {
     printf("%i ", index[i]);
     if(i == testSurface->pitch)
       printf("\n");
-  }
+  }*/
+  printf("%i", testSurface->w);
 
   keystate = SDL_GetKeyboardState(NULL);
 
@@ -151,7 +152,7 @@ int main()
     {
       colX = (projectile.x - box.x) / (box.w/testSurface->w);
       colY = (projectile.y - box.y) / (box.h/testSurface->h);
-      if(getPixel(testSurface, colX, colY) == 252)
+      if(getPixel(testSurface, colX, colY) == 255)
       {
         int value = getPixel(testSurface, colX, colY);
         printf("%i - %i - %i", value, colX, colY);
@@ -181,22 +182,74 @@ void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
 {
   Uint8 *index;
   index = (Uint8 *)testSurface->pixels;
-  int randomX;
-  int randomY;
+  int explodesUp = 1;
+  int explodesLeft = 1;
+  int explodesRight = 1;
+  int up = 1;
+  int left = 1;
+  int right = 1;
 
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x] = r;
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+1] = g;
   index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+2] = b;
 
-  for(int i = 0; i < 6; ++i)
+  /*for(int i = 0; i < 15; ++i)
   {
-    randomX = rand()%22;
-    randomY = rand()%16;
+    while(index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] == 0)
+    {
+      randomX = rand()%8;
+      randomY = rand()%8;
+    }
 
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] = r;
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+1] = g;
     index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+2] = b;
+  }*/
+
+  while(explodesUp)
+  {
+    if(rand()%(8-up) != 0 && y >= up)
+    {
+      index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x] = r;
+      index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x+1] = g;
+      index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x+2] = b;
+
+      while(explodesLeft)
+      {
+        if(rand()%(5-left-up) != 0 && x >= left)
+        {
+          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)] = r;
+          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)+1] = g;
+          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)+2] = b;
+          ++left;
+        }
+        else
+          explodesLeft = 0;
+      }
+      explodesLeft = 1;
+      left = 1;
+
+      while(explodesRight)
+      {
+        if(rand()%(5-right-up) != 0 && testSurface->w > right+x)
+        {
+          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x+right)] = r;
+          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x+right)+1] = g;
+          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x+right)+2] = b;
+          ++left;
+        }
+        else
+          explodesRight = 0;
+      }
+      explodesRight = 1;
+      right = 1;
+
+      ++up;
+    }
+    else
+      explodesUp = 0;
   }
+
 }
 
 int getPixel(SDL_Surface *testSurface, int x, int y)
