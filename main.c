@@ -3,25 +3,75 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-// include the map for the maze.
-// the width of the screen taking into account the maze and block
 #define WIDTH 800
 // the height of the screen taking into account the maze and block
 #define HEIGHT 600
-// an enumeration for direction to move USE more enums!
+#define PROJECTILESPEED 10
 
-void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b);
-int getPixel(SDL_Surface *testSurface, int x, int y);
+void editPixel(SDL_Surface *testSurface, int x, int y);
 void shootPewPew(SDL_Renderer *ren, SDL_Rect *projectile);
+Uint32 pixelActive(SDL_Surface *testSurface, int x, int y);
+
+int explosionPattern[3][12][6] =
+{
+{
+{0, 1, 1, 1, 0, 0},
+{0, 1, 1, 1, 0, 0},
+{0, 1, 1, 1, 1, 0},
+{0, 1, 1, 1, 0, 0},
+{1, 1, 1, 1, 1, 0},
+{0, 1, 1, 1, 1, 0},
+{0, 1, 1, 1, 0, 0},
+{1, 1, 1, 1, 1, 1},
+{0, 1, 1, 1, 1, 1},
+{0, 1, 1, 1, 1, 0},
+{0, 0, 1, 1, 0, 0},
+{0, 0, 1, 0, 0, 0}
+},
+{
+{0, 1, 1, 1, 0, 0},
+{1, 1, 1, 1, 0, 0},
+{0, 1, 1, 1, 1, 1},
+{1, 1, 1, 1, 1, 0},
+{0, 1, 1, 1, 0, 0},
+{0, 0, 1, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0}
+},
+{
+{0, 0, 1, 1, 0, 0},
+{0, 0, 1, 1, 0, 0},
+{0, 1, 1, 1, 1, 1},
+{0, 1, 1, 1, 1, 0},
+{1, 1, 1, 1, 0, 0},
+{1, 1, 1, 1, 1, 1},
+{1, 1, 1, 1, 1, 0},
+{0, 1, 1, 1, 0, 0},
+{0, 0, 1, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0},
+{0, 0, 0, 0, 0, 0}
+}};
+
 
 int main()
 {
 
-  SDL_Rect box;
-  box.w = 80;
-  box.h = 80;
-  box.x = WIDTH/2;
-  box.y = HEIGHT/2;
+  SDL_Rect shield;
+  shield.w = 88;
+  shield.h = 64;
+  shield.y = HEIGHT/2;
+
+  SDL_Rect shields[4] = {shield, shield, shield, shield};
+
+  for(int i = 0; i < 4; ++i)
+  {
+    shields[i].x = (WIDTH-(shield.w*4))/8 + i*(shield.w+(WIDTH-(shield.w*4))/4);
+  }
 
   SDL_Rect player;
   player.w = 30;
@@ -73,33 +123,26 @@ int main()
   // however we will overdraw all of this so only for reference
   SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
 
-  Uint8 *index;
-  SDL_Surface *testSurface;
-  SDL_Texture *textureFromSurface;
-  testSurface = IMG_Load("shieldTexture.png");
-  if(!testSurface)
+  SDL_Surface *testSurface[4];
+  SDL_Texture *textureFromSurface[4];
+
+  for(int i = 0; i < 4; ++i)
   {
-    printf("IMG_Load: %s\n", IMG_GetError());
-    return EXIT_FAILURE;
+    testSurface[i] = IMG_Load("shieldTexture.png");
+    if(!testSurface[i])
+    {
+     printf("IMG_Load: %s\n", IMG_GetError());
+     return EXIT_FAILURE;
+    }
+    textureFromSurface[i] = SDL_CreateTextureFromSurface(ren, testSurface[i]);
   }
-
-  textureFromSurface = SDL_CreateTextureFromSurface(ren, testSurface);
-  index = (Uint8 *)testSurface->pixels;
-  printf("%i \n", testSurface->format->BytesPerPixel);
-  //if(index[0] == 0x)
-  /*for(int i = 0; i < testSurface->pitch*testSurface->h; ++i)
-  {
-    printf("%i ", index[i]);
-    if(i == testSurface->pitch)
-      printf("\n");
-  }*/
-
-  printf("%i - %i", testSurface->w, testSurface->h);
 
   keystate = SDL_GetKeyboardState(NULL);
 
   int quit=0;
   // now we are going to loop forever, process the keys then draw
+
+  printf("%i : %i\n", explosionPattern[0][0][2], explosionPattern[1][0][2]);
 
   while (quit !=1)
   {
@@ -142,32 +185,27 @@ int main()
   SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
   SDL_RenderClear(ren);
 
-  SDL_RenderCopy(ren, textureFromSurface, NULL, &box);
+  for(int i = 0; i < 4; ++i)
+    SDL_RenderCopy(ren, textureFromSurface[i], NULL, &shields[i]);
 
   if(projectileActive)
   {
     shootPewPew(ren, &projectile);
-    if(projectile.y < 0)
-      projectileActive = 0;
-
-    if(SDL_HasIntersection(&projectile, &box))
+    for(int i = 0; i < 4; ++i)
     {
-      colX = (projectile.x - box.x) / (box.w/testSurface->w);
-      colY = (projectile.y - box.y) / (box.h/testSurface->h);
-      if(getPixel(testSurface, colX, colY) == 255)
+      if(SDL_HasIntersection(&projectile, &shields[i]))
       {
-        //int value = getPixel(testSurface, colX, colY);
-        //printf("%i - %i - %i", value, colX, colY);
-        projectileActive = 0;
-        editPixels(testSurface, colX, colY, 0, 0, 0);
-        printf("OSU\n");
-        textureFromSurface = SDL_CreateTextureFromSurface(ren, testSurface);
-        printf("woo\n");
+        colX = (projectile.x - shields[i].x) / (shields[i].w/testSurface[i]->w);
+        colY = (projectile.y+PROJECTILESPEED-1 - shields[i].y) / (shields[i].h/testSurface[i]->h);
+        if(pixelActive(testSurface[i], colX, colY) == 0x0000FF00)
+        {
+          projectileActive = 0;
+          editPixel(testSurface[i], colX, colY);
+          textureFromSurface[i] = SDL_CreateTextureFromSurface(ren, testSurface[i]);
+        }
       }
-      else
-        printf("not woo %i\n", getPixel(testSurface, colX, colY));
-      //printf("%i\n", getPixel(testSurface, colX, colY));
-
+      if(projectile.y < 0)
+        projectileActive = 0;
     }
   }
 
@@ -184,78 +222,50 @@ int main()
   return 0;
 }
 
-void editPixels(SDL_Surface *testSurface, int x, int y, int r, int g, int b)
+void editPixel(SDL_Surface *testSurface, int x, int y)
 {
   Uint8 *index;
+  Uint32 *colour;
+  int randomPattern = rand()%3;
   index = (Uint8 *)testSurface->pixels;
-  int randomX = rand()%testSurface->w;
-  int randomY = rand()%testSurface->h;
-  int explodesUp = 1;
-  int explodesLeft = 1;
-  int explodesRight = 1;
-  int up = 1;
-  int left = 1;
-  int right = 1;
 
-  index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x] = r;
-  index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+1] = g;
-  index[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+2] = b;
-
-  for(int i = 0; i < 10; ++i)
+  for(int r = 0; r < 12; ++r)
   {
-    while(index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+1] == 0)
+    if((y-r) >= 0)
     {
-      randomX = rand()%testSurface->w;
-      randomY = rand()%testSurface->h;
-    }
-
-    index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX] = r;
-    index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+1] = g;
-    index[(testSurface->pitch*randomY) + testSurface->format->BytesPerPixel*randomX+2] = b;
-  }
-
-  /*while(explodesUp)
-  {
-    if(rand()%(5-up) != 0 && y >= up)
-    {
-      index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x] = r;
-      index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x+1] = g;
-      index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*x+2] = b;
-
-      while(explodesLeft)
+      for(int c = 0; c < 6; ++c)
       {
-        if(rand()%(5-(left+up)) != 0 && x >= left)
+        if((x+(c-3)) >= 0 && (x+(c-3)) < testSurface->w)
         {
-          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)] = r;
-          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)+1] = g;
-          index[(testSurface->pitch*(y-up)) + testSurface->format->BytesPerPixel*(x-left)+2] = b;
-          ++left;
+          if(explosionPattern[randomPattern][r][c])
+          {
+            colour = (Uint32 *)&index[(testSurface->pitch*(y-r) + testSurface->format->BytesPerPixel*(x+(c-3)))];
+            *colour = 0x00000000;
+          }
         }
         else
-          explodesLeft = 0;
+          continue;
       }
-      explodesLeft = 1;
-      left = 1;
-
-      ++up;
     }
     else
-      explodesUp = 0;
-  }*/
-
+    {
+      break;
+    }
+  }
 }
 
-int getPixel(SDL_Surface *testSurface, int x, int y)
+Uint32 pixelActive(SDL_Surface *testSurface, int x, int y)
 {
-  Uint8 *pixel;
-  pixel = (Uint8 *)testSurface->pixels;
-  int value = pixel[(testSurface->pitch*y) + testSurface->format->BytesPerPixel*x+1];
-  return value;
+  Uint8 *index;
+  Uint32 *value;
+  index = (Uint8 *)testSurface->pixels;
+  value = (Uint32 *)&index[(testSurface->pitch*y + testSurface->format->BytesPerPixel*x)];
+  return *value;
 }
 
 void shootPewPew(SDL_Renderer *ren, SDL_Rect *projectile)
 {
-  projectile->y -= 6;
+  projectile->y -= PROJECTILESPEED;
 
   SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
   SDL_RenderFillRect(ren, projectile);

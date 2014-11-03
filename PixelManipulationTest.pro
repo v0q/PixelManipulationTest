@@ -13,3 +13,5 @@ LIBS+=-lSDL2_image
 macx:DEFINES+=MAC_OS_X_VERSION_MIN_REQUIRED=1060
 CONFIG += console
 CONFIG -= app_bundle
+
+HEADERS +=
